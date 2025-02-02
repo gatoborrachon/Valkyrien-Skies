@@ -36,11 +36,20 @@ import org.valkyrienskies.mod.common.ships.ship_world.IHasShipManager;
 import org.valkyrienskies.mod.common.ships.ship_world.IPhysObjectWorld;
 import org.valkyrienskies.mod.common.ships.ship_world.PhysicsObject;
 import org.valkyrienskies.mod.common.ships.ship_world.WorldServerShipManager;
+import org.valkyrienskies.mod.common.util.multithreaded.CalledFromWrongThreadException;
 import org.valkyrienskies.mod.common.util.names.NounListNameGenerator;
-import valkyrienwarfare.api.TransformType;
 
+import com.google.common.collect.ImmutableList;
+
+import valkyrienwarfare.api.TransformType;
+import zmaster587.advancedRocketry.world.util.WorldDummy;
+
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
+
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -204,8 +213,69 @@ public class ValkyrienUtils {
         ((WorldServerShipManager) ValkyrienUtils.getPhysObjWorld(world)).queueShipSpawn(shipData, physicsInfuserPos, blockFinderType);
     }
 
-    public IPhysObjectWorld getPhysObjWorld(World world) {
+    /*public IPhysObjectWorld getPhysObjWorld(World world) {
         return ((IHasShipManager) world).getManager();
+    }*/
+    private static final IPhysObjectWorld DUMMY_PHYS_OBJ_WORLD = new IPhysObjectWorld() {
+
+        @Nonnull
+        @Override
+        public World getWorld() {
+            throw new UnsupportedOperationException("Dummy PhysObjectWorld has not a valid world");
+        }
+
+        @Override
+        public void tick() {}
+
+        @Override
+        public void onWorldUnload() {}
+
+        @Nullable
+        @Override
+        public PhysicsObject getPhysObjectFromUUID(@Nonnull UUID shipID) throws CalledFromWrongThreadException {
+            return null;
+        }
+
+        @Nonnull
+        @Override
+        public List<PhysicsObject> getPhysObjectsInAABB(@Nonnull AxisAlignedBB toCheck) throws CalledFromWrongThreadException {
+            return Collections.emptyList();
+        }
+
+        @Nonnull
+        @Override
+        public Iterable<PhysicsObject> getAllLoadedPhysObj() throws CalledFromWrongThreadException {
+            return Collections.emptyList();
+        }
+
+        @Nonnull
+        @Override
+        public ImmutableList<PhysicsObject> getAllLoadedThreadSafe() {
+            return ImmutableList.of();
+        }
+
+        @Override
+        public void queueShipLoad(@Nonnull UUID shipID) {}
+
+        @Override
+        public void queueShipUnload(@Nonnull UUID shipID) {}
+    };
+    
+    public IPhysObjectWorld getPhysObjWorld(World world) {
+        if (world instanceof WorldDummy) {
+            return DUMMY_PHYS_OBJ_WORLD;
+        }
+
+        if (!(world instanceof IHasShipManager)) {
+            return DUMMY_PHYS_OBJ_WORLD;
+        }
+
+        IHasShipManager manager = (IHasShipManager) world;
+        if (manager.getManager() == null) {
+            return DUMMY_PHYS_OBJ_WORLD;
+        }
+
+        return manager.getManager();
     }
 
     /**
